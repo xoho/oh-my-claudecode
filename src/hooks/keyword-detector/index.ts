@@ -7,6 +7,7 @@
  * Ported from oh-my-opencode's keyword-detector hook.
  */
 
+import { loadConfig } from '../../config/loader.js';
 import { isTeamEnabled } from '../../features/auto-update.js';
 import {
   classifyTaskSize,
@@ -41,26 +42,69 @@ export interface DetectedKeyword {
 
 
 /**
- * Keyword patterns for each mode
+ * Build keyword patterns, optionally requiring slash prefix for mode-activating keywords.
+ * Cancel keywords always use bare-word matching for safety.
  */
-const KEYWORD_PATTERNS: Record<KeywordType, RegExp> = {
-  cancel: /\b(cancelomc|stopomc)\b/i,
-  ralph: /\b(ralph)\b/i,
-  autopilot: /\b(autopilot|auto[\s-]?pilot|fullsend|full\s+auto)\b/i,
-  ultrapilot: /\b(ultrapilot|ultra-pilot)\b|\bparallel\s+build\b|\bswarm\s+build\b/i,
-  ultrawork: /\b(ultrawork|ulw)\b/i,
-  swarm: /\bswarm\s+\d+\s+agents?\b|\bcoordinated\s+agents\b|\bteam\s+mode\b/i,
-  team: /(?<!\b(?:my|the|our|a|his|her|their|its)\s)\bteam\b|\bcoordinated\s+team\b/i,
-  pipeline: /\bagent\s+pipeline\b|\bchain\s+agents\b/i,
-  ralplan: /\b(ralplan)\b/i,
-  tdd: /\b(tdd)\b|\btest\s+first\b/i,
-  ultrathink: /\b(ultrathink)\b/i,
-  deepsearch: /\b(deepsearch)\b|\bsearch\s+the\s+codebase\b|\bfind\s+in\s+(the\s+)?codebase\b/i,
-  analyze: /\b(deep[\s-]?analyze|deepanalyze)\b/i,
-  ccg: /\b(ccg|claude-codex-gemini)\b/i,
-  codex: /\b(ask|use|delegate\s+to)\s+(codex|gpt)\b/i,
-  gemini: /\b(ask|use|delegate\s+to)\s+gemini\b/i
-};
+function buildKeywordPatterns(requireSlashPrefix: boolean): Record<KeywordType, RegExp> {
+  if (!requireSlashPrefix) {
+    // Original patterns — bare word matching
+    return {
+      cancel: /\b(cancelomc|stopomc)\b/i,
+      ralph: /\b(ralph)\b/i,
+      autopilot: /\b(autopilot|auto[\s-]?pilot|fullsend|full\s+auto)\b/i,
+      ultrapilot: /\b(ultrapilot|ultra-pilot)\b|\bparallel\s+build\b|\bswarm\s+build\b/i,
+      ultrawork: /\b(ultrawork|ulw)\b/i,
+      swarm: /\bswarm\s+\d+\s+agents?\b|\bcoordinated\s+agents\b|\bteam\s+mode\b/i,
+      team: /(?<!\b(?:my|the|our|a|his|her|their|its)\s)\bteam\b|\bcoordinated\s+team\b/i,
+      pipeline: /\bagent\s+pipeline\b|\bchain\s+agents\b/i,
+      ralplan: /\b(ralplan)\b/i,
+      tdd: /\b(tdd)\b|\btest\s+first\b/i,
+      ultrathink: /\b(ultrathink)\b/i,
+      deepsearch: /\b(deepsearch)\b|\bsearch\s+the\s+codebase\b|\bfind\s+in\s+(the\s+)?codebase\b/i,
+      analyze: /\b(deep[\s-]?analyze|deepanalyze)\b/i,
+      ccg: /\b(ccg|claude-codex-gemini)\b/i,
+      codex: /\b(ask|use|delegate\s+to)\s+(codex|gpt)\b/i,
+      gemini: /\b(ask|use|delegate\s+to)\s+gemini\b/i,
+    };
+  }
+
+  // Slash-prefix patterns — mode-activating keywords require / prefix.
+  // Cancel keywords remain bare-word for safety.
+  //
+  // NOTE: Natural-language aliases are intentionally dropped in slash mode:
+  //   ultrapilot: "parallel build", "swarm build" -> /ultrapilot only
+  //   swarm: "coordinated agents", "team mode" -> /swarm N agents only
+  //   team: "coordinated team", bare "team" -> /team only
+  //   pipeline: "agent pipeline", "chain agents" -> /pipeline only
+  //   deepsearch: "search the codebase", "find in codebase" -> /deepsearch only
+  //   tdd: "test first" -> /tdd only
+  //   codex: "ask codex", "use codex" -> /codex only
+  //   gemini: "ask gemini", "use gemini" -> /gemini only
+  return {
+    cancel: /\b(cancelomc|stopomc)\b/i,
+    ralph: /(?:^|\s)\/(ralph)\b/i,
+    autopilot: /(?:^|\s)\/(autopilot|auto[\s-]?pilot|fullsend|full\s+auto)\b/i,
+    ultrapilot: /(?:^|\s)\/(ultrapilot|ultra-pilot)\b/i,
+    ultrawork: /(?:^|\s)\/(ultrawork|ulw)\b/i,
+    swarm: /(?:^|\s)\/swarm\s+\d+\s+agents?\b/i,
+    team: /(?:^|\s)\/team\b/i,
+    pipeline: /(?:^|\s)\/pipeline\b/i,
+    ralplan: /(?:^|\s)\/(ralplan)\b/i,
+    tdd: /(?:^|\s)\/(tdd)\b/i,
+    ultrathink: /(?:^|\s)\/(ultrathink)\b/i,
+    deepsearch: /(?:^|\s)\/(deepsearch)\b/i,
+    analyze: /(?:^|\s)\/(deep[\s-]?analyze|deepanalyze)\b/i,
+    ccg: /(?:^|\s)\/(ccg|claude-codex-gemini)\b/i,
+    codex: /(?:^|\s)\/(codex|gpt)\b/i,
+    gemini: /(?:^|\s)\/(gemini)\b/i,
+  };
+}
+
+// Load config once at module init
+const _config = loadConfig();
+const KEYWORD_PATTERNS: Record<KeywordType, RegExp> = buildKeywordPatterns(
+  _config.keywordDetection?.requireSlashPrefix ?? false
+);
 
 /**
  * Priority order for keyword detection
@@ -97,8 +141,10 @@ export function sanitizeForKeywordDetection(text: string): string {
   result = result.replace(/<\w[\w-]*(?:\s[^>]*)?\s*\/>/g, '');
   // Remove URLs
   result = result.replace(/https?:\/\/\S+/g, '');
-  // Remove file paths — requires leading / or ./ or multi-segment dir/file.ext
-  result = result.replace(/(^|[\s"'`(])(?:\.?\/(?:[\w.-]+\/)*[\w.-]+|(?:[\w.-]+\/)+[\w.-]+\.\w+)/gm, '$1');
+  // Remove file paths — requires at least two segments for absolute/relative paths,
+  // or multi-segment dir/file.ext for bare relative paths.
+  // Single-segment /keyword is preserved to support slash-prefix mode detection.
+  result = result.replace(/(^|[\s"'`(])(?:\.?\/(?:[\w.-]+\/)+[\w.-]+|(?:[\w.-]+\/)+[\w.-]+\.\w+)/gm, '$1');
   // Remove code blocks (fenced and inline)
   result = removeCodeBlocks(result);
   return result;
@@ -137,10 +183,15 @@ export function detectKeywordsWithType(
     const match = cleanedText.match(pattern);
 
     if (match && match.index !== undefined) {
+      // Trim leading whitespace consumed by (?:^|\s) in slash-prefix patterns
+      const rawKeyword = match[0];
+      const trimmedKeyword = rawKeyword.trimStart();
+      const leadingOffset = rawKeyword.length - trimmedKeyword.length;
+
       detected.push({
         type,
-        keyword: match[0],
-        position: match.index
+        keyword: trimmedKeyword,
+        position: match.index + leadingOffset
       });
 
       // Legacy ultrapilot/swarm also activate team mode internally
