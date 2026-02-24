@@ -528,5 +528,43 @@ describe('permission-handler', () => {
         expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
       });
     });
+
+    describe('audit logging', () => {
+      const auditLogPath = path.join(stateDir, 'auto-approval-audit.jsonl');
+
+      it('should write audit log entry when command is auto-approved', () => {
+        fs.mkdirSync(stateDir, { recursive: true });
+        const input = createInput('git status');
+        processPermissionRequest(input);
+
+        expect(fs.existsSync(auditLogPath)).toBe(true);
+        const content = fs.readFileSync(auditLogPath, 'utf-8').trim();
+        const entry = JSON.parse(content);
+        expect(entry.command).toBe('git status');
+        expect(entry.approved).toBe(true);
+        expect(entry.timestamp).toBeDefined();
+      });
+
+      it('should NOT write audit log for denied commands', () => {
+        fs.mkdirSync(stateDir, { recursive: true });
+        const input = createInput('rm -rf /');
+        processPermissionRequest(input);
+
+        expect(fs.existsSync(auditLogPath)).toBe(false);
+      });
+
+      it('should log heredoc auto-approvals with first line only', () => {
+        fs.mkdirSync(stateDir, { recursive: true });
+        const cmd = `git commit -m "$(cat <<'EOF'\nfeat: message\nEOF\n)"`;
+        const input = createInput(cmd);
+        processPermissionRequest(input);
+
+        expect(fs.existsSync(auditLogPath)).toBe(true);
+        const content = fs.readFileSync(auditLogPath, 'utf-8').trim();
+        const entry = JSON.parse(content);
+        expect(entry.command).not.toContain('\n');
+        expect(entry.approved).toBe(true);
+      });
+    });
   });
 });

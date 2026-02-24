@@ -178,6 +178,29 @@ export function isActiveModeRunning(directory: string): boolean {
 }
 
 /**
+ * Log auto-approval decisions for security audit trail.
+ * Writes append-only JSONL to .omc/state/auto-approval-audit.jsonl
+ */
+function logAutoApproval(cwd: string, command: string, reason: string): void {
+  try {
+    const stateDir = path.join(cwd, '.omc', 'state');
+    if (!fs.existsSync(stateDir)) {
+      fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
+    }
+    const logPath = path.join(stateDir, 'auto-approval-audit.jsonl');
+    const entry = {
+      timestamp: new Date().toISOString(),
+      command,
+      approved: true,
+      reason,
+    };
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n', { mode: 0o600 });
+  } catch {
+    // Audit logging is best-effort — never block command execution
+  }
+}
+
+/**
  * Process permission request and decide whether to auto-allow
  */
 export function processPermissionRequest(input: PermissionRequestInput): HookOutput {
@@ -195,6 +218,7 @@ export function processPermissionRequest(input: PermissionRequestInput): HookOut
 
   // Auto-allow safe commands
   if (isSafeCommand(command)) {
+    logAutoApproval(input.cwd, command, 'Safe read-only or test command');
     return {
       continue: true,
       hookSpecificOutput: {
@@ -210,6 +234,7 @@ export function processPermissionRequest(input: PermissionRequestInput): HookOut
   // Auto-allow heredoc commands with safe base commands (Issue #608)
   // This prevents the full heredoc body from being stored in settings.local.json
   if (isHeredocWithSafeBase(command)) {
+    logAutoApproval(input.cwd, command.split('\n')[0], 'Safe command with heredoc content');
     return {
       continue: true,
       hookSpecificOutput: {
