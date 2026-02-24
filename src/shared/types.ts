@@ -120,6 +120,29 @@ export interface PluginConfig {
     /** Suppress heavy orchestration modes (ralph/autopilot/team/ultrawork) for small tasks. Default: true */
     suppressHeavyModesForSmallTasks?: boolean;
   };
+
+  // Security guardrails configuration
+  guardrails?: {
+    ralph?: {
+      hardMaxIterations?: number;
+      wallClockTimeoutMinutes?: number;
+      maxStopAttempts?: number;
+      stopAttemptWindowSeconds?: number;
+    };
+    autopilot?: {
+      wallClockTimeoutMinutes?: number;
+      maxStopAttempts?: number;
+    };
+    ultrawork?: {
+      wallClockTimeoutMinutes?: number;
+      maxStopAttempts?: number;
+    };
+  };
+
+  // Keyword detection configuration
+  keywordDetection?: {
+    requireSlashPrefix?: boolean;
+  };
 }
 
 export interface SessionState {
