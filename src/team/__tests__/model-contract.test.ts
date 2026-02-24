@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { getContract, buildLaunchArgs, buildWorkerCommand, getWorkerEnv, parseCliOutput } from '../model-contract.js';
+import { describe, it, expect } from 'vitest';
+import { getContract, buildLaunchArgs, getWorkerEnv, parseCliOutput } from '../model-contract.js';
 
 describe('model-contract', () => {
   describe('getContract', () => {

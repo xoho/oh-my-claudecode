@@ -87,8 +87,8 @@ describe('LspClientManager eviction and disconnectAll', () => {
   // Since the class is not exported, we'll test via the module-level exports.
 
   // For reliable testing, let's re-import fresh each time
-  let lspClientManager: any;
-  let IDLE_TIMEOUT: number;
+  let _lspClientManager: any;
+  let _IDLE_TIMEOUT: number;
 
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -233,9 +233,9 @@ describe('LspClientManager eviction and disconnectAll', () => {
       manager._lastUsed.set(key, Date.now());
 
       // Use the real runWithClientLease logic
-      let leaseResolve: () => void;
-      const leasePromise = new Promise<void>((resolve) => {
-        leaseResolve = resolve;
+      let _leaseResolve: () => void;
+      const _leasePromise = new Promise<void>((resolve) => {
+        _leaseResolve = resolve;
       });
 
       // Start a lease (simulated)
@@ -364,7 +364,7 @@ function createMockClient(): MockClient {
  * and disconnectAll logic, with public access to internal maps for testing.
  */
 function createTestManager() {
-  let idleTimer: ReturnType<typeof setInterval> | null = setInterval(() => {
+  const idleTimer: ReturnType<typeof setInterval> | null = setInterval(() => {
     // no-op for testing; we call triggerEviction manually
   }, 60_000);
   if (idleTimer && typeof idleTimer === 'object' && 'unref' in idleTimer) {

@@ -81,7 +81,7 @@ describe('tokscale-adapter', () => {
   describe('resetAdapterCache', () => {
     it('clears the cached adapter', async () => {
       // Get adapter to populate cache
-      const adapter1 = await getTokscaleAdapter();
+      const _adapter1 = await getTokscaleAdapter();
 
       // Reset cache
       resetAdapterCache();

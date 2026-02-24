@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import { join } from 'path';
 import { parseTranscript, loadTranscript } from '../../analytics/transcript-parser.js';

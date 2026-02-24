@@ -13,8 +13,6 @@ import { tmpdir } from 'os';
 import type {
   ExternalTool,
   PluginManifest,
-  DiscoveredPlugin,
-  DiscoveredMcpServer,
 } from '../compatibility/types.js';
 
 // Import functions under test
@@ -22,16 +20,11 @@ import {
   discoverPlugins,
   discoverMcpServers,
   discoverAll,
-  getPluginInfo,
-  isPluginInstalled,
 } from '../compatibility/discovery.js';
 
 import {
   ToolRegistry,
   getRegistry,
-  routeCommand,
-  getExternalTool,
-  listExternalTools,
 } from '../compatibility/registry.js';
 
 import {

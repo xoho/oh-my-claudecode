@@ -13,15 +13,12 @@ import {
   isModeActiveInAnySession,
   getActiveSessionsForMode,
   clearStaleSessionDirs,
-  canStartMode,
 } from '../index.js';
 
 import {
   validateSessionId,
   resolveSessionStatePath,
-  getSessionStateDir,
   listSessionIds,
-  ensureSessionStateDir,
 } from '../../../lib/worktree-paths.js';
 
 describe('Session-Scoped State Isolation', () => {

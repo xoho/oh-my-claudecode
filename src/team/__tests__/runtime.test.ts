@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { TeamConfig, TeamRuntime } from '../runtime.js';
+import type { TeamConfig } from '../runtime.js';
 
 describe('runtime types', () => {
   it('TeamConfig has required fields', () => {
