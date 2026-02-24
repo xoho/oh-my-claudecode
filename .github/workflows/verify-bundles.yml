@@ -1,0 +1,40 @@
+name: Verify Bridge Bundles
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+jobs:
+  verify-bundles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Save committed bundle checksums
+        run: sha256sum bridge/*.cjs | sort > /tmp/committed.sha256
+
+      - name: Clean install and rebuild
+        run: |
+          npm ci
+          npm run build
+
+      - name: Compare bundle checksums
+        run: |
+          sha256sum bridge/*.cjs | sort > /tmp/rebuilt.sha256
+          if ! diff /tmp/committed.sha256 /tmp/rebuilt.sha256; then
+            echo "::error::Pre-built bundles do not match source rebuild!"
+            echo "Committed checksums:"
+            cat /tmp/committed.sha256
+            echo "Rebuilt checksums:"
+            cat /tmp/rebuilt.sha256
+            exit 1
+          fi
+          echo "Bundle verification passed."
+
+      - name: Security audit
+        run: npm audit --production --audit-level=high || true

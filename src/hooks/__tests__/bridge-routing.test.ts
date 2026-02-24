@@ -11,13 +11,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { execFileSync } from 'child_process';
-import * as autoUpdate from '../../features/auto-update.js';
 import {
   processHook,
   resetSkipHooksCache,
   requiredKeysForHook,
   HookInput,
-  HookOutput,
   HookType,
 } from '../bridge.js';
 

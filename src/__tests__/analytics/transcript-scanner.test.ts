@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
-import { homedir, tmpdir, platform } from 'os';
+import { homedir, tmpdir } from 'os';
 import { scanTranscripts, decodeProjectPath } from '../../analytics/transcript-scanner.js';
 import type { Dirent, Stats } from 'fs';
 
@@ -47,7 +47,7 @@ vi.mock('os');
 
 describe('transcript-scanner', () => {
   const mockHomedir = '/home/testuser';
-  const projectsDir = join(mockHomedir, '.claude', 'projects');
+  const _projectsDir = join(mockHomedir, '.claude', 'projects');
 
   beforeEach(() => {
     vi.mocked(homedir).mockReturnValue(mockHomedir);
@@ -79,7 +79,7 @@ describe('transcript-scanner', () => {
         .mockResolvedValueOnce(mockProjectFiles1 as any)
         .mockResolvedValueOnce(mockProjectFiles2 as any);
 
-      vi.mocked(fs.stat).mockImplementation(async (path: any) => {
+      vi.mocked(fs.stat).mockImplementation(async (_path: any) => {
         const stats: Partial<Stats> = {
           size: 1024,
           mtime: new Date('2026-01-24T00:00:00.000Z'),

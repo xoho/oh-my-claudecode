@@ -46,6 +46,7 @@ import {
 import { checkAutopilot } from '../autopilot/enforcement.js';
 import { readTeamPipelineState } from '../team-pipeline/state.js';
 import type { TeamPipelinePhase } from '../team-pipeline/types.js';
+import { loadConfig } from '../../config/loader.js';
 
 export interface ToolErrorState {
   tool_name: string;
@@ -81,6 +82,17 @@ const MAX_TODO_CONTINUATION_ATTEMPTS = 5;
 
 /** Track todo-continuation attempts per session to prevent infinite loops */
 const todoContinuationAttempts = new Map<string, number>();
+
+/** Absolute maximum iterations — cannot be overridden by config */
+const ABSOLUTE_MAX_ITERATIONS = 100;
+
+/** Load guardrail config once */
+const _guardrailConfig = loadConfig().guardrails?.ralph ?? {
+  hardMaxIterations: 20,
+  wallClockTimeoutMinutes: 30,
+  maxStopAttempts: 3,
+  stopAttemptWindowSeconds: 60,
+};
 
 /**
  * Read last tool error from state directory.
@@ -322,6 +334,38 @@ async function checkRalphLoop(
     return null;
   }
 
+  // GUARDRAIL: Hard iteration cap (non-overridable)
+  const hardMax = Math.min(
+    _guardrailConfig.hardMaxIterations ?? 20,
+    ABSOLUTE_MAX_ITERATIONS
+  );
+  if (state.iteration >= hardMax) {
+    clearRalphState(workingDir, sessionId);
+    clearVerificationState(workingDir, sessionId);
+    deactivateUltrawork(workingDir, sessionId);
+    return {
+      shouldBlock: false,
+      message: `[RALPH LOOP STOPPED - HARD CAP] Reached maximum ${hardMax} iterations. Task may need manual review.`,
+      mode: 'none'
+    };
+  }
+
+  // GUARDRAIL: Wall-clock timeout
+  const timeoutMs = (_guardrailConfig.wallClockTimeoutMinutes ?? 30) * 60 * 1000;
+  if (state.started_at) {
+    const elapsed = Date.now() - new Date(state.started_at).getTime();
+    if (elapsed > timeoutMs) {
+      clearRalphState(workingDir, sessionId);
+      clearVerificationState(workingDir, sessionId);
+      deactivateUltrawork(workingDir, sessionId);
+      return {
+        shouldBlock: false,
+        message: `[RALPH LOOP STOPPED - TIMEOUT] Wall-clock timeout of ${_guardrailConfig.wallClockTimeoutMinutes} minutes reached.`,
+        mode: 'none'
+      };
+    }
+  }
+
   // Self-heal linked ultrawork: if ralph is active and marked linked but ultrawork
   // state is missing, recreate it so stop reinforcement cannot silently disappear.
   if (state.linked_ultrawork) {
@@ -450,13 +494,23 @@ async function checkRalphLoop(
     };
   }
 
-  // Check max iterations
+  // Check max iterations — enforce hard cap instead of auto-extending unbounded
   if (state.iteration >= state.max_iterations) {
-    // Do not silently stop Ralph with unfinished work.
-    // Extend the limit and continue enforcement so user-visible cancellation
-    // remains the only explicit termination path.
-    state.max_iterations += 10;
-    writeRalphState(workingDir, state, sessionId);
+    if (state.max_iterations < hardMax) {
+      // Allow extension up to the hard cap
+      state.max_iterations = Math.min(state.max_iterations + 10, hardMax);
+      writeRalphState(workingDir, state, sessionId);
+    } else {
+      // Hard cap reached — stop
+      clearRalphState(workingDir, sessionId);
+      clearVerificationState(workingDir, sessionId);
+      deactivateUltrawork(workingDir, sessionId);
+      return {
+        shouldBlock: false,
+        message: `[RALPH LOOP STOPPED - HARD CAP] Reached maximum ${hardMax} iterations.`,
+        mode: 'none'
+      };
+    }
   }
 
   // Read tool error before generating message

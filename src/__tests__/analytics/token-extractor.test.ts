@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { extractTokens, createSnapshot } from '../../analytics/token-extractor.js';
-import type { TokenSnapshot, ExtractedTokens } from '../../analytics/token-extractor.js';
+import type { TokenSnapshot } from '../../analytics/token-extractor.js';
 import type { StatuslineStdin } from '../../hud/types.js';
 
 describe('TokenExtractor', () => {

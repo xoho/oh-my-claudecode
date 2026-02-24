@@ -21,7 +21,7 @@ vi.mock('child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('child_process')>();
   return {
     ...actual,
-    execFile: vi.fn((_cmd: string, _args: string[], cb: Function) => cb(null, '', '')),
+    execFile: vi.fn((_cmd: string, _args: string[], cb: (err: null, stdout: string, stderr: string) => void) => cb(null, '', '')),
     execFileSync: actual.execFileSync,
     execSync: actual.execSync,
   };
@@ -36,7 +36,7 @@ beforeEach(async () => {
   killedPanes = [];
   killedSessions = [];
   const cp = await import('child_process');
-  vi.mocked(cp.execFile).mockImplementation(((_cmd: string, args: string[], cb: Function) => {
+  vi.mocked(cp.execFile).mockImplementation(((_cmd: string, args: string[], cb: (err: null, stdout: string, stderr: string) => void) => {
     if (args[0] === 'kill-pane') killedPanes.push(args[2]);
     if (args[0] === 'kill-session') killedSessions.push(args[2]);
     cb(null, '', '');

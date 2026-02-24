@@ -113,6 +113,27 @@ export const DEFAULT_CONFIG: PluginConfig = {
     largeWordLimit: 200,
     suppressHeavyModesForSmallTasks: true,
   },
+  // Security guardrails
+  guardrails: {
+    ralph: {
+      hardMaxIterations: 20,
+      wallClockTimeoutMinutes: 30,
+      maxStopAttempts: 3,
+      stopAttemptWindowSeconds: 60,
+    },
+    autopilot: {
+      wallClockTimeoutMinutes: 60,
+      maxStopAttempts: 3,
+    },
+    ultrawork: {
+      wallClockTimeoutMinutes: 45,
+      maxStopAttempts: 3,
+    },
+  },
+  // Keyword detection
+  keywordDetection: {
+    requireSlashPrefix: false,
+  },
 };
 
 /**

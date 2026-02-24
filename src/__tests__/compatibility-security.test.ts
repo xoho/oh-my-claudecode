@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { join, resolve } from 'path';
-import { mkdirSync, writeFileSync, rmSync, existsSync, symlinkSync } from 'fs';
+import { join } from 'path';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 
 // Import functions under test
@@ -304,7 +304,7 @@ describe('Security: Path Traversal Prevention', () => {
   it('should reject skills path with path traversal', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const pluginDir = createPlugin('traversal-plugin', {
+    const _pluginDir = createPlugin('traversal-plugin', {
       skills: '../../../etc/passwd',
     });
 

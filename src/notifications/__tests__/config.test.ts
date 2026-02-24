@@ -5,7 +5,6 @@ import {
   buildConfigFromEnv,
   validateSlackMention,
 } from "../config.js";
-import type { NotificationConfig } from "../types.js";
 
 describe("validateMention", () => {
   it("accepts valid user mention", () => {
@@ -175,7 +174,7 @@ describe("validateSlackMention", () => {
 });
 
 describe("buildConfigFromEnv", () => {
-  const originalEnv = process.env;
+  const _originalEnv = process.env;
 
   beforeEach(() => {
     vi.stubEnv("OMC_DISCORD_NOTIFIER_BOT_TOKEN", "");
@@ -305,8 +304,8 @@ describe("buildConfigFromEnv", () => {
 });
 
 describe("getNotificationConfig - deep merge", () => {
-  let mockExistsSync: ReturnType<typeof vi.fn>;
-  let mockReadFileSync: ReturnType<typeof vi.fn>;
+  let _mockExistsSync: ReturnType<typeof vi.fn>;
+  let _mockReadFileSync: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     // Clear env vars
@@ -322,8 +321,8 @@ describe("getNotificationConfig - deep merge", () => {
     vi.stubEnv("OMC_SLACK_WEBHOOK_URL", "");
     vi.stubEnv("OMC_SLACK_MENTION", "");
 
-    mockExistsSync = vi.fn().mockReturnValue(false);
-    mockReadFileSync = vi.fn().mockReturnValue("{}");
+    _mockExistsSync = vi.fn().mockReturnValue(false);
+    _mockReadFileSync = vi.fn().mockReturnValue("{}");
   });
 
   afterEach(() => {

@@ -1,0 +1,44 @@
+{
+  // oh-my-claudecode hardened configuration for professional codebases
+  // Copy to: ~/.config/claude-omc/config.jsonc
+  //
+  // This template enables security guardrails while keeping all
+  // autonomous modes functional. See MITIGATE_SECURITY_RISK_OHMYCLAUDE.md
+  // for the full rationale behind each setting.
+
+  "features": {
+    "parallelExecution": true,
+    "lspTools": true,
+    "astTools": true,
+    "continuationEnforcement": true,
+    "autoContextInjection": true
+  },
+
+  "permissions": {
+    "allowBash": true,
+    "allowEdit": true,
+    "allowWrite": true,
+    "maxBackgroundTasks": 3
+  },
+
+  "guardrails": {
+    "ralph": {
+      "hardMaxIterations": 20,
+      "wallClockTimeoutMinutes": 30,
+      "maxStopAttempts": 3,
+      "stopAttemptWindowSeconds": 60
+    },
+    "autopilot": {
+      "wallClockTimeoutMinutes": 60,
+      "maxStopAttempts": 3
+    },
+    "ultrawork": {
+      "wallClockTimeoutMinutes": 45,
+      "maxStopAttempts": 3
+    }
+  },
+
+  "keywordDetection": {
+    "requireSlashPrefix": true
+  }
+}

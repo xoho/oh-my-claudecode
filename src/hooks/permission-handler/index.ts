@@ -49,6 +49,24 @@ const SAFE_PATTERNS = [
 // and command substitution is already caught by $ detection
 const DANGEROUS_SHELL_CHARS = /[;&|`$()<>\n\r\t\0\\{}\[\]*?~!#]/;
 
+/**
+ * Commands that must NEVER be auto-approved regardless of pattern matching.
+ * These are destructive, network-accessing, or privilege-changing operations.
+ * This list is a source-code constant — not configurable.
+ */
+const NEVER_AUTO_APPROVE = [
+  /\brm\b/,
+  /\bgit\s+(push|reset|rebase|merge|cherry-pick|revert)\b/,
+  /\bnpm\s+(publish|unpublish)\b/,
+  /\bcurl\b/,
+  /\bwget\b/,
+  /\bsudo\b/,
+  /\bchmod\b/,
+  /\bchown\b/,
+  /\bdd\b/,
+  /\bmkfs\b/,
+];
+
 // Heredoc operator detection (<<, <<-, <<~, with optional quoting of delimiter)
 const HEREDOC_PATTERN = /<<[-~]?\s*['"]?\w+['"]?/;
 
@@ -71,6 +89,11 @@ export function isSafeCommand(command: string): boolean {
   // SECURITY: Reject ANY command with shell metacharacters
   // These allow command chaining that bypasses safe pattern checks
   if (DANGEROUS_SHELL_CHARS.test(trimmed)) {
+    return false;
+  }
+
+  // SECURITY: Deny-list — these commands are never auto-approved
+  if (NEVER_AUTO_APPROVE.some(pattern => pattern.test(trimmed))) {
     return false;
   }
 
@@ -155,6 +178,29 @@ export function isActiveModeRunning(directory: string): boolean {
 }
 
 /**
+ * Log auto-approval decisions for security audit trail.
+ * Writes append-only JSONL to .omc/state/auto-approval-audit.jsonl
+ */
+function logAutoApproval(cwd: string, command: string, reason: string): void {
+  try {
+    const stateDir = path.join(cwd, '.omc', 'state');
+    if (!fs.existsSync(stateDir)) {
+      fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
+    }
+    const logPath = path.join(stateDir, 'auto-approval-audit.jsonl');
+    const entry = {
+      timestamp: new Date().toISOString(),
+      command,
+      approved: true,
+      reason,
+    };
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n', { mode: 0o600 });
+  } catch {
+    // Audit logging is best-effort — never block command execution
+  }
+}
+
+/**
  * Process permission request and decide whether to auto-allow
  */
 export function processPermissionRequest(input: PermissionRequestInput): HookOutput {
@@ -172,6 +218,7 @@ export function processPermissionRequest(input: PermissionRequestInput): HookOut
 
   // Auto-allow safe commands
   if (isSafeCommand(command)) {
+    logAutoApproval(input.cwd, command, 'Safe read-only or test command');
     return {
       continue: true,
       hookSpecificOutput: {
@@ -179,21 +226,6 @@ export function processPermissionRequest(input: PermissionRequestInput): HookOut
         decision: {
           behavior: 'allow',
           reason: 'Safe read-only or test command',
-        },
-      },
-    };
-  }
-
-  // Auto-allow heredoc commands with safe base commands (Issue #608)
-  // This prevents the full heredoc body from being stored in settings.local.json
-  if (isHeredocWithSafeBase(command)) {
-    return {
-      continue: true,
-      hookSpecificOutput: {
-        hookEventName: 'PermissionRequest',
-        decision: {
-          behavior: 'allow',
-          reason: 'Safe command with heredoc content',
         },
       },
     };

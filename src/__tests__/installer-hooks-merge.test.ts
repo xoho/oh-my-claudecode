@@ -300,7 +300,7 @@ describe('Hook merge during omc update', () => {
       // A hook group with type != 'command' should not count as non-OMC
       const existing: HookGroup[] = [{ hooks: [{ type: 'webhook', command: '' }] }];
       const newOmc = [omcGroup(NEW_OMC_CMD)];
-      const { merged, conflicts } = mergeEventHooks(existing, newOmc, { force: true });
+      const { merged: _merged, conflicts } = mergeEventHooks(existing, newOmc, { force: true });
 
       // The webhook group has no command-type hooks → nonOmcGroups is empty
       expect(conflicts).toHaveLength(0);

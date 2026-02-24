@@ -170,7 +170,7 @@ describe('Project Memory Integration', () => {
       await registerProjectMemoryContext(sessionId, tempDir);
 
       // Load and manually set lastScanned to 25 hours ago
-      let memory = await loadProjectMemory(tempDir);
+      const memory = await loadProjectMemory(tempDir);
       expect(memory).not.toBeNull();
       memory!.lastScanned = Date.now() - 25 * 60 * 60 * 1000;
 
