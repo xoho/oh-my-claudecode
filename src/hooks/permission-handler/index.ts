@@ -231,22 +231,6 @@ export function processPermissionRequest(input: PermissionRequestInput): HookOut
     };
   }
 
-  // Auto-allow heredoc commands with safe base commands (Issue #608)
-  // This prevents the full heredoc body from being stored in settings.local.json
-  if (isHeredocWithSafeBase(command)) {
-    logAutoApproval(input.cwd, command.split('\n')[0], 'Safe command with heredoc content');
-    return {
-      continue: true,
-      hookSpecificOutput: {
-        hookEventName: 'PermissionRequest',
-        decision: {
-          behavior: 'allow',
-          reason: 'Safe command with heredoc content',
-        },
-      },
-    };
-  }
-
   // Default: let normal permission flow handle it
   return { continue: true };
 }

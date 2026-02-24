@@ -486,19 +486,18 @@ describe('permission-handler', () => {
     });
 
     describe('heredoc command handling (Issue #608)', () => {
-      it('should auto-allow git commit with heredoc message', () => {
+      it('should NOT auto-allow git commit with heredoc message', () => {
         const cmd = `git commit -m "$(cat <<'EOF'\nfeat: add new feature\n\nDetailed description here.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n)"`;
         const result = processPermissionRequest(createInput(cmd));
         expect(result.continue).toBe(true);
-        expect(result.hookSpecificOutput?.decision?.behavior).toBe('allow');
-        expect(result.hookSpecificOutput?.decision?.reason).toContain('heredoc');
+        expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
       });
 
-      it('should auto-allow git tag with heredoc annotation', () => {
+      it('should NOT auto-allow git tag with heredoc annotation', () => {
         const cmd = `git tag -a v1.0.0 -m "$(cat <<'EOF'\nRelease v1.0.0\nEOF\n)"`;
         const result = processPermissionRequest(createInput(cmd));
         expect(result.continue).toBe(true);
-        expect(result.hookSpecificOutput?.decision?.behavior).toBe('allow');
+        expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
       });
 
       it('should NOT auto-allow unsafe heredoc commands', () => {
@@ -553,17 +552,27 @@ describe('permission-handler', () => {
         expect(fs.existsSync(auditLogPath)).toBe(false);
       });
 
-      it('should log heredoc auto-approvals with first line only', () => {
+      it('should NOT write audit log for heredoc commands (no longer auto-approved)', () => {
         fs.mkdirSync(stateDir, { recursive: true });
         const cmd = `git commit -m "$(cat <<'EOF'\nfeat: message\nEOF\n)"`;
         const input = createInput(cmd);
         processPermissionRequest(input);
 
-        expect(fs.existsSync(auditLogPath)).toBe(true);
-        const content = fs.readFileSync(auditLogPath, 'utf-8').trim();
-        const entry = JSON.parse(content);
-        expect(entry.command).not.toContain('\n');
-        expect(entry.approved).toBe(true);
+        expect(fs.existsSync(auditLogPath)).toBe(false);
+      });
+    });
+
+    describe('heredoc exception removed', () => {
+      it('should NOT auto-approve git commit with heredoc', () => {
+        const cmd = `git commit -m "$(cat <<'EOF'\nfeat: message\nEOF\n)"`;
+        const result = processPermissionRequest(createInput(cmd));
+        expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
+      });
+
+      it('should NOT auto-approve git tag with heredoc', () => {
+        const cmd = `git tag -a v1.0.0 -m "$(cat <<'EOF'\nRelease\nEOF\n)"`;
+        const result = processPermissionRequest(createInput(cmd));
+        expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
       });
     });
   });
