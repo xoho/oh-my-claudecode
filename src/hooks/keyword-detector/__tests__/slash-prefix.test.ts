@@ -10,7 +10,6 @@ vi.mock('../../../config/loader.js', () => ({
 }));
 
 // Must import AFTER mock is set up
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { detectKeywordsWithType, getAllKeywords } = await import('../index.js');
 
 describe('keyword-detector with requireSlashPrefix=true', () => {
