@@ -7,14 +7,13 @@ STAGED_FILES=$(git diff --cached --name-only)
 
 FORBIDDEN=(".omc/state/" ".omc/skills/" ".omc/config" ".omc/.*\.marker" ".omc/.*\.pid")
 
-for pattern in "${FORBIDDEN[@]}"; do
-  MATCHES=$(echo "$STAGED_FILES" | grep -E "$pattern" || true)
-  if [ -n "$MATCHES" ]; then
-    echo "ERROR: Blocked commit of oh-my-claudecode runtime files:"
-    echo "$MATCHES"
-    echo ""
-    echo "These files should never be committed. Remove with:"
-    echo "  git reset HEAD <file>"
-    exit 1
-  fi
-done
+FORBIDDEN_REGEX=$(IFS='|'; echo "${FORBIDDEN[*]}")
+MATCHES=$(echo "$STAGED_FILES" | grep -E "$FORBIDDEN_REGEX" || true)
+if [ -n "$MATCHES" ]; then
+  echo "ERROR: Blocked commit of oh-my-claudecode runtime files:"
+  echo "$MATCHES"
+  echo ""
+  echo "These files should never be committed. Remove with:"
+  echo "  git reset HEAD <file>"
+  exit 1
+fi

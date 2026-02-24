@@ -29,7 +29,7 @@ check "FAIL" ".omc/ not in .gitignore" \
   "! grep -q '\.omc/' .gitignore 2>/dev/null"
 
 check "FAIL" "~/.omc/config.json has loose permissions" \
-  "[ -f ~/.omc/config.json ] && [ \$(stat -c %a ~/.omc/config.json 2>/dev/null || echo 600) != '600' ]"
+  "[ -f ~/.omc/config.json ] && [ \$(stat -c %a ~/.omc/config.json 2>/dev/null || stat -f %Lp ~/.omc/config.json 2>/dev/null || echo 600) != '600' ]"
 
 check "FAIL" ".omc/ files staged in git" \
   "git diff --cached --name-only 2>/dev/null | grep -q '\.omc/'"

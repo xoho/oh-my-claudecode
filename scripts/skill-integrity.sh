@@ -6,9 +6,14 @@
 
 set -euo pipefail
 
-SKILLS_DIR="${1:-$HOME/.omc/skills/omc-learned}"
+if [[ "${1:-}" == "generate" || "${1:-}" == "verify" ]]; then
+  ACTION="$1"
+  SKILLS_DIR="${2:-$HOME/.omc/skills/omc-learned}"
+else
+  SKILLS_DIR="${1:-$HOME/.omc/skills/omc-learned}"
+  ACTION="${2:-verify}"
+fi
 MANIFEST="$SKILLS_DIR/.manifest.json"
-ACTION="${2:-verify}"
 
 generate() {
   if [ ! -d "$SKILLS_DIR" ]; then
@@ -22,8 +27,9 @@ generate() {
     [ -f "$f" ] || continue
     hash=$(sha256sum "$f" | cut -d' ' -f1)
     name=$(basename "$f")
+    name_escaped=${name//\"/\\\"}
     if [ "$first" = true ]; then first=false; else echo "," >> "$MANIFEST"; fi
-    printf '  "%s": "%s"' "$name" "$hash" >> "$MANIFEST"
+    printf '  "%s": "%s"' "$name_escaped" "$hash" >> "$MANIFEST"
   done
   echo "" >> "$MANIFEST"
   echo "}" >> "$MANIFEST"
