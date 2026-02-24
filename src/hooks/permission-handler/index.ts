@@ -49,6 +49,24 @@ const SAFE_PATTERNS = [
 // and command substitution is already caught by $ detection
 const DANGEROUS_SHELL_CHARS = /[;&|`$()<>\n\r\t\0\\{}\[\]*?~!#]/;
 
+/**
+ * Commands that must NEVER be auto-approved regardless of pattern matching.
+ * These are destructive, network-accessing, or privilege-changing operations.
+ * This list is a source-code constant — not configurable.
+ */
+const NEVER_AUTO_APPROVE = [
+  /\brm\b/,
+  /\bgit\s+(push|reset|rebase|merge|cherry-pick|revert)\b/,
+  /\bnpm\s+(publish|unpublish)\b/,
+  /\bcurl\b/,
+  /\bwget\b/,
+  /\bsudo\b/,
+  /\bchmod\b/,
+  /\bchown\b/,
+  /\bdd\b/,
+  /\bmkfs\b/,
+];
+
 // Heredoc operator detection (<<, <<-, <<~, with optional quoting of delimiter)
 const HEREDOC_PATTERN = /<<[-~]?\s*['"]?\w+['"]?/;
 
@@ -71,6 +89,11 @@ export function isSafeCommand(command: string): boolean {
   // SECURITY: Reject ANY command with shell metacharacters
   // These allow command chaining that bypasses safe pattern checks
   if (DANGEROUS_SHELL_CHARS.test(trimmed)) {
+    return false;
+  }
+
+  // SECURITY: Deny-list — these commands are never auto-approved
+  if (NEVER_AUTO_APPROVE.some(pattern => pattern.test(trimmed))) {
     return false;
   }
 

@@ -169,6 +169,26 @@ describe('permission-handler', () => {
     });
   });
 
+  describe('NEVER_AUTO_APPROVE deny-list', () => {
+    const deniedCases = [
+      { cmd: 'rm -rf /tmp/test', desc: 'rm command' },
+      { cmd: 'git push origin main', desc: 'git push' },
+      { cmd: 'git reset --hard HEAD~1', desc: 'git reset' },
+      { cmd: 'git rebase main', desc: 'git rebase' },
+      { cmd: 'npm publish', desc: 'npm publish' },
+      { cmd: 'sudo apt install something', desc: 'sudo command' },
+      { cmd: 'chmod 777 /tmp/file', desc: 'chmod command' },
+      { cmd: 'chown root /tmp/file', desc: 'chown command' },
+      { cmd: 'wget http://example.com/file', desc: 'wget command' },
+    ];
+
+    deniedCases.forEach(({ cmd, desc }) => {
+      it(`should deny ${desc}: ${cmd}`, () => {
+        expect(isSafeCommand(cmd)).toBe(false);
+      });
+    });
+  });
+
   describe('isHeredocWithSafeBase (Issue #608)', () => {
     describe('should detect and allow safe heredoc commands', () => {
       const safeCases = [
